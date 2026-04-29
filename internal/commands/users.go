@@ -14,8 +14,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const pgUniqueViolation = "23505"
-
 // Login switches the active user in the config to an existing DB user.
 func Login(s *cli.State, cmd cli.Command) error {
 	if len(cmd.Args) == 0 {
