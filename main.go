@@ -30,6 +30,7 @@ func main() {
 	cmds.Register("login", handlers.Login)
 	cmds.Register("register", handlers.Register)
 	cmds.Register("reset", handlers.Reset)
+	cmds.Register("users", handlers.Users)
 
 	if len(os.Args) < 2 {
 		log.Fatal("usage: gator <command> [args...]")

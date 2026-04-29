@@ -52,3 +52,30 @@ func Register(s *cli.State, cmd cli.Command) error {
 	fmt.Printf("new user created: %s\n", user.Name)
 	return nil
 }
+
+func Reset(s *cli.State, cmd cli.Command) error {
+	err := s.DB.DeleteUsers(context.Background())
+	if err != nil {
+		os.Exit(1)
+	}
+
+	fmt.Printf("all users deleted\n")
+	return nil
+}
+
+func Users(s *cli.State, cmd cli.Command) error {
+	users, err := s.DB.GetUsers(context.Background())
+	if err != nil {
+		os.Exit(1)
+	}
+
+	for _, user := range users {
+		fmt.Printf("* %s", user.Name)
+		if s.Cfg.CurrentUserName == user.Name {
+			fmt.Printf(" (current)")
+		}
+		fmt.Printf("\n")
+	}
+
+	return nil
+}
