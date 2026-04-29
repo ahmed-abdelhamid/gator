@@ -56,3 +56,23 @@ func AddFeed(s *cli.State, cmd cli.Command) error {
 	fmt.Printf("  user: %s\n", user.Name)
 	return nil
 }
+
+// Feeds prints every registered feed with its owning user.
+func Feeds(s *cli.State, cmd cli.Command) error {
+	if len(cmd.Args) != 0 {
+		return fmt.Errorf("feeds takes no arguments")
+	}
+
+	feeds, err := s.DB.ListFeedsWithAuthor(context.Background())
+	if err != nil {
+		return fmt.Errorf("get feeds: %w", err)
+	}
+
+	for _, feed := range feeds {
+		fmt.Printf("- name: %s\n", feed.Name)
+		fmt.Printf("  url:  %s\n", feed.Url)
+		fmt.Printf("  user: %s\n", feed.Author)
+	}
+
+	return nil
+}

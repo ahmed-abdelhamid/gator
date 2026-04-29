@@ -40,6 +40,7 @@ func run() error {
 	cmds.Register("users", commands.Users)
 	cmds.Register("agg", commands.Agg)
 	cmds.Register("addfeed", commands.AddFeed)
+	cmds.Register("feeds", commands.Feeds)
 
 	if len(os.Args) < 2 {
 		return fmt.Errorf("usage: gator <command> [args...]")

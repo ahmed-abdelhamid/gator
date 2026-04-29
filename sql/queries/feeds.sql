@@ -9,3 +9,13 @@ VALUES (
   $6
 )
 RETURNING *;
+
+-- name: ListFeedsWithAuthor :many
+SELECT
+  feeds.name,
+  feeds.url,
+  users.name AS author
+FROM feeds
+INNER JOIN users
+ON users.id = feeds.user_id
+ORDER BY feeds.created_at DESC;
