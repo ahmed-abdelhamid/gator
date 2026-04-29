@@ -1,16 +1,22 @@
-package handlers
+// Package commands implements the gator CLI command handlers.
+package commands
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ahmed-abdelhamid/gator/internal/cli"
 	"github.com/ahmed-abdelhamid/gator/internal/database"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
+const pgUniqueViolation = "23505"
+
+// Login switches the active user in the config to an existing DB user.
 func Login(s *cli.State, cmd cli.Command) error {
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("login requires a username argument")
@@ -18,7 +24,10 @@ func Login(s *cli.State, cmd cli.Command) error {
 
 	user, err := s.DB.GetUser(context.Background(), cmd.Args[0])
 	if err != nil {
-		os.Exit(1)
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("user %q does not exist", cmd.Args[0])
+		}
+		return fmt.Errorf("get user %q: %w", cmd.Args[0], err)
 	}
 
 	if err := s.Cfg.SetUser(user.Name); err != nil {
@@ -29,20 +38,26 @@ func Login(s *cli.State, cmd cli.Command) error {
 	return nil
 }
 
+// Register creates a new user and sets them as the active user.
 func Register(s *cli.State, cmd cli.Command) error {
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("register requires a username argument")
 	}
 
+	now := time.Now().UTC()
 	params := database.CreateUserParams{
 		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 		Name:      cmd.Args[0],
 	}
 	user, err := s.DB.CreateUser(context.Background(), params)
 	if err != nil {
-		os.Exit(1)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolation {
+			return fmt.Errorf("user %q already exists", cmd.Args[0])
+		}
+		return fmt.Errorf("create user %q: %w", cmd.Args[0], err)
 	}
 
 	if err := s.Cfg.SetUser(user.Name); err != nil {
@@ -53,28 +68,19 @@ func Register(s *cli.State, cmd cli.Command) error {
 	return nil
 }
 
-func Reset(s *cli.State, cmd cli.Command) error {
-	err := s.DB.DeleteUsers(context.Background())
-	if err != nil {
-		os.Exit(1)
-	}
-
-	fmt.Printf("all users deleted\n")
-	return nil
-}
-
+// Users prints every registered user, marking the active one.
 func Users(s *cli.State, cmd cli.Command) error {
 	users, err := s.DB.GetUsers(context.Background())
 	if err != nil {
-		os.Exit(1)
+		return fmt.Errorf("get users: %w", err)
 	}
 
 	for _, user := range users {
-		fmt.Printf("* %s", user.Name)
+		marker := ""
 		if s.Cfg.CurrentUserName == user.Name {
-			fmt.Printf(" (current)")
+			marker = " (current)"
 		}
-		fmt.Printf("\n")
+		fmt.Printf("* %s%s\n", user.Name, marker)
 	}
 
 	return nil
