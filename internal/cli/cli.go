@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/ahmed-abdelhamid/gator/internal/config"
@@ -10,9 +11,12 @@ import (
 )
 
 // State is the shared context handed to every command handler.
+// Conn is the raw *sql.DB; reach for it only when you need a transaction.
+// DB is the sqlc-generated Queries for normal use.
 type State struct {
-	DB  *database.Queries
-	Cfg *config.Config
+	DB   *database.Queries
+	Conn *sql.DB
+	Cfg  *config.Config
 }
 
 // Command is a parsed CLI invocation: a name plus its positional arguments.

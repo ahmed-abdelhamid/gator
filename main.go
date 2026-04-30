@@ -31,7 +31,7 @@ func run() error {
 	}
 	defer db.Close()
 
-	s := &cli.State{Cfg: &cfg, DB: database.New(db)}
+	s := &cli.State{Cfg: &cfg, DB: database.New(db), Conn: db}
 
 	cmds := cli.NewCommands()
 	cmds.Register("login", commands.Login)
@@ -41,6 +41,8 @@ func run() error {
 	cmds.Register("agg", commands.Agg)
 	cmds.Register("addfeed", commands.AddFeed)
 	cmds.Register("feeds", commands.Feeds)
+	cmds.Register("follow", commands.Follow)
+	cmds.Register("following", commands.Following)
 
 	if len(os.Args) < 2 {
 		return fmt.Errorf("usage: gator <command> [args...]")

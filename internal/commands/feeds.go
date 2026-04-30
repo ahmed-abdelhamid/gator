@@ -2,52 +2,54 @@ package commands
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ahmed-abdelhamid/gator/internal/cli"
 	"github.com/ahmed-abdelhamid/gator/internal/database"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
-// AddFeed creates a feed owned by the currently logged-in user.
+// AddFeed creates a feed owned by the currently logged-in user and
+// auto-follows it. The two writes run in a single transaction so a
+// failure can't leave a feed without its owner's follow row.
 func AddFeed(s *cli.State, cmd cli.Command) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: addfeed <name> <url>")
 	}
 
-	if s.Cfg.CurrentUserName == "" {
-		return fmt.Errorf("no user logged in; run `gator login` first")
-	}
-
-	user, err := s.DB.GetUser(context.Background(), s.Cfg.CurrentUserName)
+	ctx := context.Background()
+	user, err := requireCurrentUser(ctx, s)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("logged-in user %q does not exist", s.Cfg.CurrentUserName)
-		}
-		return fmt.Errorf("get user %q: %w", s.Cfg.CurrentUserName, err)
+		return err
 	}
 
-	now := time.Now().UTC()
-	params := database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: now,
-		UpdatedAt: now,
-		Name:      cmd.Args[0],
-		Url:       cmd.Args[1],
-		UserID:    user.ID,
-	}
-
-	feed, err := s.DB.CreateFeed(context.Background(), params)
+	tx, err := s.Conn.BeginTx(ctx, nil)
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolation {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.DB.WithTx(tx)
+
+	feed, err := qtx.CreateFeed(ctx, database.CreateFeedParams{
+		Name:   cmd.Args[0],
+		Url:    cmd.Args[1],
+		UserID: user.ID,
+	})
+	if err != nil {
+		if isUniqueViolation(err) {
 			return fmt.Errorf("feed url %q already exists", cmd.Args[1])
 		}
 		return fmt.Errorf("create feed: %w", err)
+	}
+
+	if _, err := qtx.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}); err != nil {
+		return fmt.Errorf("create feed follow: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
 	}
 
 	fmt.Printf("Feed added:\n")
@@ -76,3 +78,4 @@ func Feeds(s *cli.State, cmd cli.Command) error {
 
 	return nil
 }
+
