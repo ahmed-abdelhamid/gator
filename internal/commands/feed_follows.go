@@ -62,3 +62,35 @@ func Following(s *cli.State, cmd cli.Command, user database.User) error {
 	}
 	return nil
 }
+
+// Unfollow removes the currently logged-in user's follow record for the
+// feed at the given URL.
+func Unfollow(s *cli.State, cmd cli.Command, user database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: unfollow <url>")
+	}
+
+	ctx := context.Background()
+
+	feed, err := s.DB.GetFeedByURL(ctx, cmd.Args[0])
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("feed with url %q does not exist", cmd.Args[0])
+		}
+		return fmt.Errorf("get feed %q: %w", cmd.Args[0], err)
+	}
+
+	rows, err := s.DB.DeleteFeedFollow(ctx, database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("delete feed follow: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("you don't follow feed %q", cmd.Args[0])
+	}
+
+	fmt.Printf("Unfollowed feed: %s\n", feed.Name)
+	return nil
+}
