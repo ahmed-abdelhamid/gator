@@ -11,16 +11,12 @@ import (
 // AddFeed creates a feed owned by the currently logged-in user and
 // auto-follows it. The two writes run in a single transaction so a
 // failure can't leave a feed without its owner's follow row.
-func AddFeed(s *cli.State, cmd cli.Command) error {
+func AddFeed(s *cli.State, cmd cli.Command, user database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: addfeed <name> <url>")
 	}
 
 	ctx := context.Background()
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
-	}
 
 	tx, err := s.Conn.BeginTx(ctx, nil)
 	if err != nil {
@@ -78,4 +74,3 @@ func Feeds(s *cli.State, cmd cli.Command) error {
 
 	return nil
 }
-

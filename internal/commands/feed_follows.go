@@ -12,16 +12,12 @@ import (
 
 // Follow records that the currently logged-in user follows the feed at the
 // given URL. The feed must already exist; use AddFeed to register a new one.
-func Follow(s *cli.State, cmd cli.Command) error {
+func Follow(s *cli.State, cmd cli.Command, user database.User) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("usage: follow <url>")
 	}
 
 	ctx := context.Background()
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
-	}
 
 	feed, err := s.DB.GetFeedByURL(ctx, cmd.Args[0])
 	if err != nil {
@@ -49,16 +45,12 @@ func Follow(s *cli.State, cmd cli.Command) error {
 }
 
 // Following lists every feed the currently logged-in user follows.
-func Following(s *cli.State, cmd cli.Command) error {
+func Following(s *cli.State, cmd cli.Command, user database.User) error {
 	if len(cmd.Args) != 0 {
 		return fmt.Errorf("following takes no arguments")
 	}
 
 	ctx := context.Background()
-	user, err := requireCurrentUser(ctx, s)
-	if err != nil {
-		return err
-	}
 
 	feedNames, err := s.DB.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {

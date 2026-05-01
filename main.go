@@ -39,10 +39,10 @@ func run() error {
 	cmds.Register("reset", commands.Reset)
 	cmds.Register("users", commands.Users)
 	cmds.Register("agg", commands.Agg)
-	cmds.Register("addfeed", commands.AddFeed)
+	cmds.Register("addfeed", cli.RequireLoggedIn(commands.AddFeed))
 	cmds.Register("feeds", commands.Feeds)
-	cmds.Register("follow", commands.Follow)
-	cmds.Register("following", commands.Following)
+	cmds.Register("follow", cli.RequireLoggedIn(commands.Follow))
+	cmds.Register("following", cli.RequireLoggedIn(commands.Following))
 
 	if len(os.Args) < 2 {
 		return fmt.Errorf("usage: gator <command> [args...]")
