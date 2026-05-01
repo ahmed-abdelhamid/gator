@@ -44,6 +44,7 @@ func run() error {
 	cmds.Register("follow", cli.RequireLoggedIn(commands.Follow))
 	cmds.Register("following", cli.RequireLoggedIn(commands.Following))
 	cmds.Register("unfollow", cli.RequireLoggedIn(commands.Unfollow))
+	cmds.Register("browse", cli.RequireLoggedIn(commands.Browse))
 
 	if len(os.Args) < 2 {
 		return fmt.Errorf("usage: gator <command> [args...]")

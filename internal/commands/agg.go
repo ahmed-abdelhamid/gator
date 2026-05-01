@@ -70,7 +70,10 @@ func scrapeFeeds(ctx context.Context, s *cli.State) error {
 
 	fmt.Printf("Scraping %s (%d items)\n", feed.Name, len(rssFeed.Channel.Item))
 	for _, item := range rssFeed.Channel.Item {
-		fmt.Printf("- %s\n", item.Title)
+		if err := s.DB.CreatePost(ctx, postFromItem(item, feed.ID)); err != nil {
+			log.Printf("create post %q: %v", item.Link, err)
+			continue
+		}
 	}
 	return nil
 }
